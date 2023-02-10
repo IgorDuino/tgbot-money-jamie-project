@@ -8,29 +8,38 @@ from PIL import Image, ImageDraw, ImageFont
 from decouple import config
 import logging
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.WARNING)
 
-PRODUCT_IMAGE_HEIGHT = 650
-
 bot = telebot.TeleBot(config('TOKEN'))
+UTC_PLUS = config('UTC_PLUS', cast=int, default=0)
 
 
 def generate_image(template_number: int, name: str, price: float, product_image: Image, url: str) -> Image:
     def create_qr_code(url: str, logo: Image) -> bytes:
         qr = qrcode.QRCode(
-            version=4,
-            error_correction=qrcode.constants.ERROR_CORRECT_Q,
+            version=5,
+            error_correction=2,
             box_size=10,
             border=0,
         )
         qr.add_data(url)
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
+        img: Image.Image = img.get_image()
+        img = img.convert('RGBA')
+        img_width, img_height = img.size
+
+        logo = logo.resize((int(img_height / 3.2), int(img_height / 3.2)))
+        logo_width, logo_height = logo.size
+        img.paste(logo, (img_width // 2 - logo_width // 2, img_height // 2 - logo_height // 2))
+
         img_io = BytesIO()
         img.save(img_io, 'PNG')
-        return img_io.getvalue()
+        img_io.seek(0)
+
+        return img_io.read()
 
     template = ['images/MY.png', 'images/PH.png', 'images/SG.png'][template_number]
     template = Image.open(template)
@@ -42,7 +51,8 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     # Draw time
     time_font = ImageFont.truetype('Fonts/OpenSans-VariableFont_wdth,wght.ttf', 50)
     time_font.set_variation_by_name('Bold')
-    time_text = datetime.now().strftime('%H:%M')
+    time_ = datetime.utcnow() + timedelta(hours=UTC_PLUS)
+    time_text = time_.strftime('%H:%M')
     _, _, text_width, text_height = draw.textbbox((0, 0), time_text, font=time_font)
     draw.text((120, 50), time_text, fill='black', font=time_font)
 
@@ -50,27 +60,32 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     name_font = ImageFont.truetype('Fonts/OpenSans-VariableFont_wdth,wght.ttf', 60)
     name_font.set_variation_by_name('SemiBold')
     _, _, text_width, text_height = draw.textbbox((0, 0), name, font=name_font)
-    draw.text(((template.width - text_width) / 2, 680), name, fill='#686968', font=name_font)
+    draw.text((int((template.width - text_width) / 2), 680), name, fill='#686968', font=name_font)
 
     # Draw product price
     price_font = ImageFont.truetype('Fonts/OpenSans-VariableFont_wdth,wght.ttf', 60)
     price_font.set_variation_by_name('Bold')
     _, _, text_width, text_height = draw.textbbox((0, 0), price_text, font=price_font)
-    draw.text(((template.width - text_width) / 2 + 250, 1325), price_text, fill='#dd313b', font=price_font)
+    draw.text((525, 1325), price_text, fill='#dd313b', font=price_font)
 
     # Paste product image
     product_width, product_height = product_image.size
 
-    x1 = 0
-    y1 = product_image.size[1] // 2 - PRODUCT_IMAGE_HEIGHT // 2
-    x2 = product_image.size[0]
-    y2 = product_image.size[1] // 2 + PRODUCT_IMAGE_HEIGHT // 2
+    PRODUCT_IMAGE_HEIGHT = 340
+    PRODUCT_IMAGE_WEIGHT = 800
 
-    product_image = product_image.crop((x1, y1, x2, y2))
-    product_image = product_image.resize(
-        (int(template_width * 0.61), int(product_width / product_height * template_width * 0.61)))
+    new_width = PRODUCT_IMAGE_WEIGHT
+    new_height = product_height / product_width * new_width
+    if new_height < PRODUCT_IMAGE_HEIGHT:
+        new_height = PRODUCT_IMAGE_HEIGHT
+    new_width = product_width / product_height * new_height
+    new_width, new_height = int(new_width), int(new_height)
 
-    template.paste(product_image, (template_width // 2 - product_image.size[0] // 2, 775))
+    product_image = product_image.resize((new_width, new_height))
+    product_image = product_image.crop(
+        (0, int(new_height / 2 - PRODUCT_IMAGE_HEIGHT / 2), PRODUCT_IMAGE_WEIGHT,
+         int(new_height / 2 + PRODUCT_IMAGE_HEIGHT)))
+    template.paste(product_image, (int(template_width / 2 - new_width / 2), 800))
 
     # Draw watermark
     watermark = Image.open('images/watermark.png')
@@ -83,12 +98,12 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     template.paste(watermark, (250, 1232))
 
     # Paste QR code
-    qr_code = Image.open(BytesIO(create_qr_code(url, Image.open('images/logo.jpg'))))
+    qr_code = Image.open(BytesIO(create_qr_code(url, Image.open('images/logo.png'))))
     qr_code = qr_code.resize((int(template_width * 0.5), int(template_width * 0.5)))
-    template.paste(qr_code, (template_width // 2 - qr_code.size[0] // 2, 1450))
+    template.paste(qr_code,
+                   (int(template_width / 2 - qr_code.size[0] / 2), int(template_height * 0.68 - qr_code.size[1] / 2)))
 
     return template
-
 
 
 @bot.message_handler(commands=['start'])
@@ -142,7 +157,6 @@ def generate_handler(message):
 def callback_inline(call: telebot.types.CallbackQuery):
     if call.data.startswith('template:'):
         template_number = int(call.data.split(':')[1])
-        # edit message
         bot.edit_message_text("Название товара:", call.message.chat.id, call.message.id)
         bot.register_next_step_handler(call.message, generate_handler_name_step, template_number)
 
@@ -153,11 +167,3 @@ if __name__ == '__main__':
             bot.polling(none_stop=True)
         except Exception as e:
             logging.error(e)
-
-# if __name__ == "__main__":
-#     image = generate_image(template_number=1,
-#                            name='Iphone 11 Pro 512GB',
-#                            price=100000.00,
-#                            product_image=Image.open('product.png'),
-#                            url='https://google.com')
-#     image.save('result.png')
