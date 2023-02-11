@@ -9,6 +9,7 @@ from decouple import config
 import logging
 
 from datetime import datetime, timedelta
+import math
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -18,23 +19,27 @@ UTC_PLUS = config('UTC_PLUS', cast=int, default=0)
 
 def smart_crop(img: Image.Image, width, height) -> Image.Image:
     if (width > img.width) or (height > img.height):
-        k = max(width // img.width, height // img.height)
+        k = max(math.ceil(width / img.width), math.ceil(height / img.height))
         res_img = img.resize(
             (img.width * k, img.height * k)
         )
-        a, b = (res_img.width - width) // 2, (res_img.height - height) // 2
+
+        a, b = abs(res_img.width - width) // 2, abs(res_img.height - height) // 2
         crop_img = res_img.crop((a, b, res_img.width - a, res_img.height - b))
 
         final_img = crop_img.resize(
             (width, height)
         )
+
     else:
         k = min(img.width // width, img.height // height)
         res_img = img.resize(
             (img.width // k, img.height // k)
         )
-        a, b = (res_img.width - width) // 2, (res_img.height - height) // 2
+
+        a, b = abs(res_img.width - width) // 2, abs(res_img.height - height) // 2
         crop_img = res_img.crop((a, b, res_img.width - a, res_img.height - b))
+
         final_img = crop_img.resize(
             (width, height)
         )
