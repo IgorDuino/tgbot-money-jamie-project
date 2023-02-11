@@ -49,7 +49,7 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     draw = ImageDraw.Draw(template)
 
     # Draw time
-    time_font = ImageFont.truetype('Fonts/OpenSans-VariableFont_wdth,wght.ttf', 50)
+    time_font = ImageFont.truetype('fonts/OpenSans-VariableFont_wdth,wght.ttf', 50)
     time_font.set_variation_by_name('Bold')
     time_ = datetime.utcnow() + timedelta(hours=UTC_PLUS)
     time_text = time_.strftime('%H:%M')
@@ -57,13 +57,13 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     draw.text((120, 50), time_text, fill='black', font=time_font)
 
     # Draw product name
-    name_font = ImageFont.truetype('Fonts/OpenSans-VariableFont_wdth,wght.ttf', 60)
+    name_font = ImageFont.truetype('fonts/OpenSans-VariableFont_wdth,wght.ttf', 60)
     name_font.set_variation_by_name('SemiBold')
     _, _, text_width, text_height = draw.textbbox((0, 0), name, font=name_font)
     draw.text((int((template.width - text_width) / 2), 680), name, fill='#686968', font=name_font)
 
     # Draw product price
-    price_font = ImageFont.truetype('Fonts/OpenSans-VariableFont_wdth,wght.ttf', 60)
+    price_font = ImageFont.truetype('fonts/OpenSans-VariableFont_wdth,wght.ttf', 60)
     price_font.set_variation_by_name('Bold')
     _, _, text_width, text_height = draw.textbbox((0, 0), price_text, font=price_font)
     draw.text((525, 1325), price_text, fill='#dd313b', font=price_font)
