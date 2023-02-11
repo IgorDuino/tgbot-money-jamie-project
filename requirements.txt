@@ -1,4 +1,4 @@
-Pillow==9.4.0
+Pillow~=9.4.0
 python-decouple
-pyTelegramBotAPI==4.10
-qrcode
+pyTelegramBotAPI~=4.10
+qrcode~=7.4.2
