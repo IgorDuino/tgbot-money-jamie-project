@@ -16,6 +16,32 @@ bot = telebot.TeleBot(config('TOKEN'))
 UTC_PLUS = config('UTC_PLUS', cast=int, default=0)
 
 
+def smart_crop(img: Image.Image, width, height) -> Image.Image:
+    if (width > img.width) or (height > img.height):
+        k = max(width // img.width, height // img.height)
+        res_img = img.resize(
+            (img.width * k, img.height * k)
+        )
+        a, b = (res_img.width - width) // 2, (res_img.height - height) // 2
+        crop_img = res_img.crop((a, b, res_img.width - a, res_img.height - b))
+
+        final_img = crop_img.resize(
+            (width, height)
+        )
+    else:
+        k = min(img.width // width, img.height // height)
+        res_img = img.resize(
+            (img.width // k, img.height // k)
+        )
+        a, b = (res_img.width - width) // 2, (res_img.height - height) // 2
+        crop_img = res_img.crop((a, b, res_img.width - a, res_img.height - b))
+        final_img = crop_img.resize(
+            (width, height)
+        )
+
+    return final_img
+
+
 def generate_image(template_number: int, name: str, price: float, product_image: Image, url: str) -> Image:
     def create_qr_code(url: str, logo: Image) -> bytes:
         qr = qrcode.QRCode(
@@ -70,21 +96,13 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     # Paste product image
     product_width, product_height = product_image.size
 
-    PRODUCT_IMAGE_HEIGHT = 340
-    PRODUCT_IMAGE_WEIGHT = 800
+    PRODUCT_IMAGE_WEIGHT = 0.6 * template_width
+    PRODUCT_IMAGE_HEIGHT = 0.2 * template_height
+    PRODUCT_IMAGE_WEIGHT, PRODUCT_IMAGE_HEIGHT = int(PRODUCT_IMAGE_WEIGHT), int(PRODUCT_IMAGE_HEIGHT)
 
-    new_width = PRODUCT_IMAGE_WEIGHT
-    new_height = product_height / product_width * new_width
-    if new_height < PRODUCT_IMAGE_HEIGHT:
-        new_height = PRODUCT_IMAGE_HEIGHT
-    new_width = product_width / product_height * new_height
-    new_width, new_height = int(new_width), int(new_height)
+    product_image = smart_crop(product_image, PRODUCT_IMAGE_WEIGHT, PRODUCT_IMAGE_HEIGHT)
 
-    product_image = product_image.resize((new_width, new_height))
-    product_image = product_image.crop(
-        (0, int(new_height / 2 - PRODUCT_IMAGE_HEIGHT / 2), PRODUCT_IMAGE_WEIGHT,
-         int(new_height / 2 + PRODUCT_IMAGE_HEIGHT)))
-    template.paste(product_image, (int(template_width / 2 - new_width / 2), 800))
+    template.paste(product_image, (int(template_width / 2 - product_image.size[0] / 2), 780))
 
     # Draw watermark
     watermark = Image.open('images/watermark.png')
@@ -94,7 +112,7 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     new_width, new_height = int(new_width), int(new_height)
     watermark = watermark.resize((new_width, new_height))
 
-    template.paste(watermark, (250, 1232), watermark)
+    template.paste(watermark, (250, 1215), watermark)
 
     # Paste QR code
     qr_code = Image.open(BytesIO(create_qr_code(url, Image.open('images/logo.png'))))
