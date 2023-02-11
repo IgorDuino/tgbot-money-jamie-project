@@ -49,8 +49,7 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     draw = ImageDraw.Draw(template)
 
     # Draw time
-    time_font = ImageFont.truetype('fonts/OpenSans-VariableFont_wdth,wght.ttf', 50)
-    time_font.set_variation_by_name('Bold')
+    time_font = ImageFont.truetype('fonts/SFProText-Semibold.ttf', 50)
     time_ = datetime.utcnow() + timedelta(hours=UTC_PLUS)
     time_text = time_.strftime('%H:%M')
     _, _, text_width, text_height = draw.textbbox((0, 0), time_text, font=time_font)
