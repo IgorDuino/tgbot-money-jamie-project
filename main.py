@@ -112,12 +112,22 @@ def start_message(message):
 
 
 def generate_handler_image_step(message, template_number, name, price, url):
-    file_info = bot.get_file(message.photo[-1].file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-    src = Image.open(BytesIO(downloaded_file))
-    img_io = BytesIO()
-    generate_image(template_number, name, price, src, url).save(img_io, 'PNG')
-    img_io.seek(0)
+    try:
+        file_info = bot.get_file(message.photo[-1].file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        src = Image.open(BytesIO(downloaded_file))
+    except Exception as e:
+        bot.send_message(message.chat.id, "Ошибка при загрузке фото. Попробуйте еще раз")
+        bot.register_next_step_handler(message, generate_handler_image_step, template_number, name, price, url)
+        return
+    try:
+        img_io = BytesIO()
+        generate_image(template_number, name, price, src, url).save(img_io, 'PNG')
+        img_io.seek(0)
+    except Exception as e:
+        bot.send_message(message.chat.id, "Ошибка при генерации скриншота. Попробуйте еще раз")
+        bot.register_next_step_handler(message, generate_handler_image_step, template_number, name, price, url)
+        return
     bot.send_photo(message.chat.id, img_io, caption="Скриншот готов! Чтобы сгенерировать еще один, отправьте /generate")
 
 
@@ -128,7 +138,13 @@ def generate_handler_url_step(message, template_number, name, price):
 
 
 def generate_handler_price_step(message, template_number, name):
-    price = message.text
+    try:
+        price = float(message.text)
+    except ValueError:
+        bot.send_message(message.chat.id, "Цена должна быть числом")
+        bot.register_next_step_handler(message, generate_handler_price_step, template_number, name)
+        return
+
     bot.send_message(message.chat.id, "Ссылка на товар:")
     bot.register_next_step_handler(message, generate_handler_url_step, template_number, name, price)
 
