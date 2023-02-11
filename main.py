@@ -95,7 +95,7 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     new_width, new_height = int(new_width), int(new_height)
     watermark = watermark.resize((new_width, new_height))
 
-    template.paste(watermark, (250, 1232))
+    template.paste(watermark, (250, 1232), watermark)
 
     # Paste QR code
     qr_code = Image.open(BytesIO(create_qr_code(url, Image.open('images/logo.png'))))
