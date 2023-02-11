@@ -56,16 +56,16 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     draw.text((120, 50), time_text, fill='black', font=time_font)
 
     # Draw product name
-    name_font = ImageFont.truetype('fonts/OpenSans-VariableFont_wdth,wght.ttf', 60)
-    name_font.set_variation_by_name('SemiBold')
+    name_font = ImageFont.truetype('fonts/SFProText-Semibold.ttf', 70)
+
     _, _, text_width, text_height = draw.textbbox((0, 0), name, font=name_font)
     draw.text((int((template.width - text_width) / 2), 680), name, fill='#686968', font=name_font)
 
     # Draw product price
-    price_font = ImageFont.truetype('fonts/OpenSans-VariableFont_wdth,wght.ttf', 60)
-    price_font.set_variation_by_name('Bold')
+    price_font = ImageFont.truetype('fonts/SFProText-Semibold.ttf', 60)
+
     _, _, text_width, text_height = draw.textbbox((0, 0), price_text, font=price_font)
-    draw.text((525, 1325), price_text, fill='#dd313b', font=price_font)
+    draw.text((530, 1332), price_text, fill='#db242d', font=price_font)
 
     # Paste product image
     product_width, product_height = product_image.size
