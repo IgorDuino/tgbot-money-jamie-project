@@ -19,9 +19,9 @@ UTC_PLUS = config('UTC_PLUS', cast=int, default=0)
 
 def smart_crop(img: Image.Image, width, height) -> Image.Image:
     if (width > img.width) or (height > img.height):
-        k = max(math.ceil(width / img.width), math.ceil(height / img.height))
+        k = max(width / img.width, height / img.height)
         res_img = img.resize(
-            (img.width * k, img.height * k)
+            (int(img.width * k), int(img.height * k))
         )
 
         a, b = abs(res_img.width - width) // 2, abs(res_img.height - height) // 2
@@ -32,9 +32,9 @@ def smart_crop(img: Image.Image, width, height) -> Image.Image:
         )
 
     else:
-        k = min(img.width // width, img.height // height)
+        k = min(img.width / width, img.height / height)
         res_img = img.resize(
-            (img.width // k, img.height // k)
+            (int(img.width / k), int(img.height / k))
         )
 
         a, b = abs(res_img.width - width) // 2, abs(res_img.height - height) // 2
