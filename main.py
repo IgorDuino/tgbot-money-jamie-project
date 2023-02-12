@@ -89,6 +89,7 @@ def generate_image(template_number: int, name: str, price: float, product_image:
     # Draw product name
     name_font = ImageFont.truetype('fonts/SFProText-Semibold.ttf', 70)
 
+    name = name[:30]
     _, _, text_width, text_height = draw.textbbox((0, 0), name, font=name_font)
     draw.text((int((template.width - text_width) / 2), 680), name, fill='#686968', font=name_font)
 
