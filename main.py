@@ -9,12 +9,12 @@ from decouple import config
 import logging
 
 from datetime import datetime, timedelta
-import math
 
 logging.basicConfig(level=logging.WARNING)
 
 bot = telebot.TeleBot(config('TOKEN'))
 UTC_PLUS = config('UTC_PLUS', cast=int, default=0)
+ALLOWED_USERS = config('ALLOWED_IDS', cast=lambda x: [int(i) for i in x.split(',')])
 
 
 def smart_crop(img: Image.Image, width, height) -> Image.Image:
@@ -131,6 +131,9 @@ def generate_image(template_number: int, name: str, price: float, product_image:
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
+    if message.chat.id not in ALLOWED_USERS:
+        bot.send_message(message.chat.id, "Бот доступен только для администраторов")
+        return
     bot.send_message(message.chat.id, "Отправьте /generate для генерации скриншота")
 
 
@@ -149,8 +152,11 @@ def generate_handler_image_step(message, template_number, name, price, url):
         img_io.seek(0)
     except Exception as e:
         bot.send_message(message.chat.id, "Ошибка при генерации скриншота. Попробуйте еще раз")
+        logging.error(e)
         bot.register_next_step_handler(message, generate_handler_image_step, template_number, name, price, url)
         return
+
+    logging.info(f"Generated screenshot for {message.chat.id}")
     bot.send_photo(message.chat.id, img_io,
                    caption="Скриншот готов! Для продолжения отправьте /generate или выберите шаблон: ",
                    reply_markup=choose_template_keyboard)
