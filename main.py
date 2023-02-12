@@ -151,7 +151,9 @@ def generate_handler_image_step(message, template_number, name, price, url):
         bot.send_message(message.chat.id, "Ошибка при генерации скриншота. Попробуйте еще раз")
         bot.register_next_step_handler(message, generate_handler_image_step, template_number, name, price, url)
         return
-    bot.send_photo(message.chat.id, img_io, caption="Скриншот готов! Чтобы сгенерировать еще один, отправьте /generate")
+    bot.send_photo(message.chat.id, img_io,
+                   caption="Скриншот готов! Для продолжения отправьте /generate или выберите шаблон: ",
+                   reply_markup=choose_template_keyboard)
 
 
 def generate_handler_url_step(message, template_number, name, price):
@@ -196,7 +198,13 @@ def generate_handler(message):
 def callback_inline(call: telebot.types.CallbackQuery):
     if call.data.startswith('template:'):
         template_number = int(call.data.split(':')[1])
-        bot.edit_message_text("Название товара:", call.message.chat.id, call.message.id)
+        if call.message.text:
+            bot.edit_message_text("Название товара:", call.message.chat.id, call.message.id)
+        elif call.message.caption:
+            bot.edit_message_caption("Скриншот готов!", call.message.chat.id, call.message.id)
+            bot.send_message(call.message.chat.id, "Название товара:")
+        else:
+            bot.send_message(call.message.chat.id, "Название товара:")
         bot.register_next_step_handler(call.message, generate_handler_name_step, template_number)
 
 
